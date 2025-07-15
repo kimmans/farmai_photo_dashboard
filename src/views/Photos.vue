@@ -1,251 +1,221 @@
 <template>
-  <div class="photos-layout">
-    <div class="photos-main">
-      <h2>사진 관리</h2>
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-slate-800">사진 관리</h2>
+    </div>
+
+    <div
+      style="
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f1f5f9;
+        padding: 1.5rem;
+      "
+    >
       <!-- 유저 선택 드롭다운 -->
-      <div class="user-select">
-        <label for="user-select">유저 선택:</label>
-        <select id="user-select" v-model="selectedUserId">
-          <option :value="null">전체</option>
-          <option
-            v-for="user in userTabs"
-            :key="user.user_id"
-            :value="user.user_id"
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem">
+        <div style="display: flex; align-items: center; gap: 0.5rem">
+          <label for="user-select" style="font-size: 0.875rem; font-weight: 500; color: #374151"
+            >유저 선택:</label
           >
-            {{ user.name }}<span v-if="user.farmName"> ({{ user.farmName }})</span>
-          </option>
-        </select>
-      </div>
-      <!-- 날짜별 필터 UI -->
-      <div class="date-filter">
-        <label for="date-filter">날짜 선택:</label>
-        <input
-          id="date-filter"
-          type="date"
-          v-model="selectedDate"
-          @change="onDateChange"
-        />
-        <button @click="clearDateFilter" class="clear-btn">날짜 초기화</button>
-      </div>
-      <PhotoTimeline :filtered-photos="filteredPhotos" @select-photo="onSelectPhoto" @dragstart-photo="onDragStartPhoto" />
-    </div>
-    <div class="detail-panel" v-if="selectedPhoto">
-      <img :src="selectedPhoto.url" :alt="selectedPhoto.part" class="detail-image" />
-      <div class="meta">
-        <h3>사진 상세 정보</h3>
-        <ul>
-          <li><b>부위:</b> {{ selectedPhoto.part }}</li>
-          <li><b>업로드 일시:</b> {{ selectedPhoto.uploaded_at }}</li>
-          <li><b>미션 ID:</b> {{ selectedPhoto.mission_id }}</li>
-        </ul>
-        <button class="ai-btn" @click="analyzePhoto" :disabled="aiLoading">
-          {{ aiLoading ? 'AI 분석 중...' : 'AI 분석' }}
-        </button>
-        <div v-if="aiResult" class="ai-result">
-          <b>AI 분석 결과:</b>
-          <div>{{ aiResult }}</div>
+          <select
+            id="user-select"
+            v-model="selectedUserId"
+            style="
+              padding: 0.5rem;
+              border: 1px solid #d1d5db;
+              border-radius: 0.375rem;
+              background: white;
+              font-size: 0.875rem;
+              min-width: 120px;
+              outline: none;
+            "
+            onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 2px rgba(59, 130, 246, 0.2)'"
+            onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'"
+          >
+            <option :value="null">전체</option>
+            <option v-for="user in userTabs" :key="user.user_id" :value="user.user_id">
+              {{ user.name }}<span v-if="user.farmName"> ({{ user.farmName }})</span>
+            </option>
+          </select>
+        </div>
+
+        <!-- 날짜별 필터 UI -->
+        <div style="display: flex; align-items: center; gap: 0.5rem">
+          <label for="date-filter" style="font-size: 0.875rem; font-weight: 500; color: #374151"
+            >날짜 선택:</label
+          >
+          <input
+            id="date-filter"
+            type="date"
+            v-model="selectedDate"
+            @change="onDateChange"
+            style="
+              padding: 0.5rem;
+              border: 1px solid #d1d5db;
+              border-radius: 0.375rem;
+              background: white;
+              font-size: 0.875rem;
+              min-width: 140px;
+              outline: none;
+            "
+            onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 2px rgba(59, 130, 246, 0.2)'"
+            onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'"
+          />
+          <button
+            @click="clearDateFilter"
+            style="
+              padding: 0.5rem 1rem;
+              background-color: #6b7280;
+              color: white;
+              border: none;
+              border-radius: 0.375rem;
+              font-size: 0.875rem;
+              cursor: pointer;
+              transition: background-color 0.2s;
+            "
+            onmouseover="this.style.backgroundColor='#4b5563'"
+            onmouseout="this.style.backgroundColor='#6b7280'"
+          >
+            날짜 초기화
+          </button>
         </div>
       </div>
-    </div>
-    <!-- 사진 비교 영역 -->
-    <div class="compare-bar" @dragover.prevent @drop="onDropCompare">
-      <h3>사진 비교 영역 (드래그해서 추가)</h3>
-      <div class="compare-list">
-        <div v-for="photo in comparePhotos" :key="photo.id" class="compare-photo">
-          <img :src="photo.url" :alt="photo.part" />
-          <div class="compare-meta">
-            <span>{{ photo.part }}</span>
-            <span>{{ photo.uploaded_at?.slice(0, 10) }}</span>
-            <button class="remove-btn" @click="removeComparePhoto(photo.id)">&times;</button>
-          </div>
-        </div>
-      </div>
+
+      <PhotoTimeline
+        :filtered-photos="filteredPhotos"
+        @select-photo="onSelectPhoto"
+        @dragstart-photo="onDragStartPhoto"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useFarmsStore } from '../stores/farms';
-import { usePhotosStore } from '../stores/photos';
-import { useMissionsStore } from '../stores/missions';
-import { useUsersStore } from '../stores/users';
-import { useAuthStore } from '../stores/auth';
-import PhotoTimeline from './PhotoTimeline.vue';
-import PhotoGallery from './PhotoGallery.vue';
+import { ref, computed, onMounted } from 'vue'
+import { useFarmsStore } from '../stores/farms'
+import { usePhotosStore } from '../stores/photos'
+import { useMissionsStore } from '../stores/missions'
+import { useUsersStore } from '../stores/users'
+import { useAuthStore } from '../stores/auth'
+import PhotoTimeline from './PhotoTimeline.vue'
 
-const farmsStore = useFarmsStore();
-const photosStore = usePhotosStore();
-const missionsStore = useMissionsStore();
-const usersStore = useUsersStore();
-const authStore = useAuthStore();
-const selectedUserId = ref<string | null>(null);
-const selectedDate = ref<string>('');
-const selectedPhoto = ref<any>(null);
-const aiLoading = ref(false);
-const aiResult = ref('');
-const comparePhotos = ref<any[]>([]);
-let dragPhoto: any = null;
+const farmsStore = useFarmsStore()
+const photosStore = usePhotosStore()
+const missionsStore = useMissionsStore()
+const usersStore = useUsersStore()
+const authStore = useAuthStore()
+const selectedUserId = ref<string | null>(null)
+const selectedDate = ref<string>('')
+const selectedPhoto = ref<any>(null)
 
 onMounted(async () => {
   await Promise.all([
     farmsStore.fetchFarms(),
     photosStore.fetchPhotos(),
     missionsStore.fetchMissions(),
-    usersStore.fetchUsers()
-  ]);
+    usersStore.fetchUsers(),
+  ])
   // 디버깅 로그 추가
-  console.log('authStore.user:', authStore.user);
-  console.log('isAdmin:', isAdmin.value);
-  console.log('photosStore.photos:', photosStore.photos);
-});
+  console.log('authStore.user:', authStore.user)
+  console.log('isAdmin:', isAdmin.value)
+  console.log('photosStore.photos:', photosStore.photos)
+})
 
 const onDateChange = () => {
-  console.log('Photos.vue: 날짜 필터 변경', selectedDate.value);
-};
+  console.log('Photos.vue: 날짜 필터 변경', selectedDate.value)
+}
 
 const clearDateFilter = () => {
-  selectedDate.value = '';
-  console.log('Photos.vue: 날짜 필터 초기화');
-};
+  selectedDate.value = ''
+  console.log('Photos.vue: 날짜 필터 초기화')
+}
 
 function onSelectPhoto(photo: any) {
-  selectedPhoto.value = photo;
-  aiResult.value = '';
+  selectedPhoto.value = photo
 }
 
 function onDragStartPhoto(photo: any) {
-  dragPhoto = photo;
-}
-
-function onDropCompare() {
-  if (dragPhoto && !comparePhotos.value.find(p => p.id === dragPhoto.id)) {
-    comparePhotos.value.push(dragPhoto);
-  }
-  dragPhoto = null;
-}
-
-function removeComparePhoto(id: string) {
-  comparePhotos.value = comparePhotos.value.filter(p => p.id !== id);
-}
-
-async function analyzePhoto() {
-  if (!selectedPhoto.value) return;
-  aiLoading.value = true;
-  aiResult.value = '';
-
-  try {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    const imageUrl = selectedPhoto.value.url;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert agricultural image analyst. Analyze the following farm photo and describe any issues, diseases, or notable features you see. Respond in Korean.'
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: '이 딸기 농장의 사진을 딸기 전문가로서 분석해줘. 딸기 농장 관련 사진이 아니면 분석하지마' },
-              { type: 'image_url', image_url: { url: imageUrl } }
-            ]
-          }
-        ],
-        max_tokens: 500
-      })
-    });
-
-    const data = await response.json();
-    aiResult.value = data.choices?.[0]?.message?.content || '분석 결과를 가져올 수 없습니다.';
-  } catch (e) {
-    aiResult.value = 'AI 분석 중 오류가 발생했습니다.';
-  } finally {
-    aiLoading.value = false;
-  }
+  // 드래그 기능은 PhotoTimeline에서 처리됨
 }
 
 // 유저별(이름+농장명) 탭 데이터 생성
 const userTabs = computed(() => {
   // farms와 users를 조합
   if (isAdmin.value) {
-    return usersStore.users.map(user => {
-      const farm = farmsStore.farms.find(f => f.user_id === user.id);
+    return usersStore.users.map((user) => {
+      const farm = farmsStore.farms.find((f) => f.user_id === user.id)
       return {
         user_id: user.id,
         name: user.name || user.email || '이름없음',
-        farmName: farm ? farm.name : ''
-      };
-    });
+        farmName: farm ? farm.name : '',
+      }
+    })
   } else {
     // user 본인만
-    const user = usersStore.users.find(u => u.id === myUserId.value);
-    if (!user) return [];
-    const farm = farmsStore.farms.find(f => f.user_id === user.id);
-    return [{
-      user_id: user.id,
-      name: user.name || user.email || '이름없음',
-      farmName: farm ? farm.name : ''
-    }];
+    const user = usersStore.users.find((u) => u.id === myUserId.value)
+    if (!user) return []
+    const farm = farmsStore.farms.find((f) => f.user_id === user.id)
+    return [
+      {
+        user_id: user.id,
+        name: user.name || user.email || '이름없음',
+        farmName: farm ? farm.name : '',
+      },
+    ]
   }
-});
+})
 
-const isAdmin = computed(() => authStore.user?.role === 'admin');
-const myUserId = computed(() => authStore.user?.id);
+const isAdmin = computed(() => authStore.user?.role === 'admin')
+const myUserId = computed(() => authStore.user?.id)
 
 // farms 필터링
 const myFarms = computed(() => {
-  if (isAdmin.value) return farmsStore.farms;
-  return farmsStore.farms.filter(farm => farm.user_id === myUserId.value);
-});
+  if (isAdmin.value) return farmsStore.farms
+  return farmsStore.farms.filter((farm) => farm.user_id === myUserId.value)
+})
 
 // farm_id 목록
-const myFarmIds = computed(() => myFarms.value.map(farm => farm.id));
+const myFarmIds = computed(() => myFarms.value.map((farm) => farm.id))
 
 // 사진 필터링 (user_id 기반, mission 매핑 포함)
 const filteredPhotos = computed(() => {
-  let filtered = photosStore.photos;
+  let filtered = photosStore.photos
 
   // 권한 기반 user_id 필터링
   if (!isAdmin.value) {
-    filtered = filtered.filter(photo => {
+    filtered = filtered.filter((photo) => {
       // 사진 row에 user_id가 있으면 바로 비교
-      if ((photo as any).user_id) return (photo as any).user_id === myUserId.value;
+      if ((photo as any).user_id) return (photo as any).user_id === myUserId.value
       // 없으면 mission_id → missions에서 user_id로 매핑
-      const mission = missionsStore.missions.find(m => m.id === photo.mission_id);
-      return mission && mission.user_id === myUserId.value;
-    });
+      const mission = missionsStore.missions.find((m) => m.id === photo.mission_id)
+      return mission && mission.user_id === myUserId.value
+    })
   }
 
   if (selectedUserId.value) {
-    filtered = filtered.filter(photo => {
-      const mission = missionsStore.missions.find(m => m.id === photo.mission_id);
-      return mission && mission.user_id === selectedUserId.value;
-    });
+    filtered = filtered.filter((photo) => {
+      const mission = missionsStore.missions.find((m) => m.id === photo.mission_id)
+      return mission && mission.user_id === selectedUserId.value
+    })
   }
 
   if (selectedDate.value) {
-    filtered = filtered.filter(photo =>
-      (photo.uploaded_at || '').slice(0, 10) === selectedDate.value
-    );
+    filtered = filtered.filter(
+      (photo) => (photo.uploaded_at || '').slice(0, 10) === selectedDate.value,
+    )
   }
 
   console.log('Photos.vue: 필터링된 사진', {
     selectedUserId: selectedUserId.value,
     selectedDate: selectedDate.value,
     totalPhotos: photosStore.photos.length,
-    filteredPhotos: filtered.length
-  });
+    filteredPhotos: filtered.length,
+  })
 
-  return filtered;
-});
+  return filtered
+})
 </script>
 
 <style scoped>
@@ -296,7 +266,9 @@ const filteredPhotos = computed(() => {
   border-radius: 4px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 .clear-btn:hover {
   background: #dc2626;
@@ -409,4 +381,4 @@ const filteredPhotos = computed(() => {
   cursor: pointer;
   margin-top: 0.2rem;
 }
-</style> 
+</style>
