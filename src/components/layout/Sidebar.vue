@@ -57,8 +57,9 @@
         </svg>
       </router-link>
 
-      <!-- 사용자 관리 -->
+      <!-- 사용자 관리 (admin만) -->
       <router-link
+        v-if="isAdmin"
         to="/users"
         style="
           width: 48px;
@@ -77,8 +78,9 @@
         </svg>
       </router-link>
 
-      <!-- 농장 관리 -->
+      <!-- 농장 관리 (admin만) -->
       <router-link
+        v-if="isAdmin"
         to="/farms"
         style="
           width: 48px;
@@ -119,8 +121,9 @@
         </svg>
       </router-link>
 
-      <!-- 미션 관리 -->
+      <!-- 미션 관리 (admin만) -->
       <router-link
+        v-if="isAdmin"
         to="/missions"
         style="
           width: 48px;
@@ -157,7 +160,15 @@
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useAuthStore } from '../../stores/auth'
+
+const authStore = useAuthStore()
+
+// admin 권한 확인
+const isAdmin = computed(() => authStore.user?.role === 'admin')
+</script>
 
 <style scoped>
 .nav-btn:hover {
