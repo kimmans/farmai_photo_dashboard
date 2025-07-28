@@ -30,7 +30,7 @@
       <!-- 제목 -->
       <div style="text-align: center; margin-bottom: 2rem">
         <h1 style="font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem">
-          관리자 로그인
+          스마트베리 대시보드
         </h1>
       </div>
 
@@ -135,6 +135,10 @@
           "
         >
           {{ auth.error }}
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #9ca3af">
+            문의: 02-782-7834 <br />
+            주식회사 팜러닝
+          </div>
         </div>
       </form>
     </div>
