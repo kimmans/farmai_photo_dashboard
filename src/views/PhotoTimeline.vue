@@ -86,41 +86,6 @@
             <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem">
               <strong>농장:</strong> {{ selectedPhoto.farm_name || 'N/A' }}
             </p>
-            <button
-              @click="analyzePhoto"
-              :disabled="aiLoading"
-              style="
-                width: 100%;
-                padding: 0.5rem 1rem;
-                background-color: #2563eb;
-                color: white;
-                border: none;
-                border-radius: 0.375rem;
-                font-size: 0.875rem;
-                font-weight: 500;
-                cursor: pointer;
-                transition: background-color 0.2s;
-                margin-bottom: 1rem;
-              "
-              :style="aiLoading ? 'background-color: #9ca3af; cursor: not-allowed;' : ''"
-            >
-              {{ aiLoading ? 'AI 분석 중...' : 'AI 분석' }}
-            </button>
-            <div
-              v-if="aiResult"
-              style="
-                background-color: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 0.5rem;
-                padding: 1rem;
-                font-size: 0.875rem;
-                color: #374151;
-                line-height: 1.5;
-              "
-            >
-              <div style="font-weight: 600; margin-bottom: 0.5rem">AI 분석 결과:</div>
-              <div>{{ aiResult }}</div>
-            </div>
           </div>
         </div>
         <div
@@ -254,8 +219,6 @@ const emit = defineEmits(['select-photo', 'dragstart-photo'])
 const photosStore = usePhotosStore()
 const selectedPhoto = ref<Photo | null>(null)
 const comparePhotos = ref<Photo[]>([])
-const aiLoading = ref(false)
-const aiResult = ref('')
 
 onMounted(() => {
   photosStore.fetchPhotos()
@@ -282,54 +245,6 @@ const removeFromCompare = (photo: Photo) => {
 
 const clearCompare = () => {
   comparePhotos.value = []
-}
-
-async function analyzePhoto() {
-  if (!selectedPhoto.value) return
-  aiLoading.value = true
-  aiResult.value = ''
-
-  try {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY
-    const imageUrl = selectedPhoto.value.url
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are an expert agricultural image analyst. Analyze the following farm photo and describe any issues, diseases, or notable features you see. Respond in Korean.',
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: '이 사진이 어떤 사진인지 알려줘. 딸기나 잎, 줄기, 병해충, 온실 사진이 아니면 나랑 장난하니? 라고 말해줘',
-              },
-              { type: 'image_url', image_url: { url: imageUrl } },
-            ],
-          },
-        ],
-        max_tokens: 500,
-      }),
-    })
-
-    const data = await response.json()
-    aiResult.value = data.choices?.[0]?.message?.content || '분석 결과를 가져올 수 없습니다.'
-  } catch (error) {
-    console.error('AI 분석 오류:', error)
-    aiResult.value = 'AI 분석 중 오류가 발생했습니다.'
-  } finally {
-    aiLoading.value = false
-  }
 }
 
 const formatDateTime = (dateTime?: string) => {

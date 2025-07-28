@@ -83,6 +83,55 @@
         </div>
       </div>
 
+      <!-- 부위별 필터 버튼 -->
+      <div style="margin-bottom: 1rem">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem">
+          <label style="font-size: 0.875rem; font-weight: 500; color: #374151">부위 선택:</label>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; min-height: 2.5rem">
+          <button
+            @click="selectedPart = ''"
+            :style="
+              selectedPart === ''
+                ? 'background-color: #2563eb; color: white;'
+                : 'background-color: #f3f4f6; color: #374151;'
+            "
+            style="
+              padding: 0.5rem 1rem;
+              border: 1px solid #d1d5db;
+              border-radius: 0.375rem;
+              font-size: 0.875rem;
+              cursor: pointer;
+              transition: all 0.2s;
+              white-space: nowrap;
+            "
+          >
+            전체
+          </button>
+          <button
+            v-for="part in availableParts"
+            :key="part"
+            @click="selectedPart = part"
+            :style="
+              selectedPart === part
+                ? 'background-color: #2563eb; color: white;'
+                : 'background-color: #f3f4f6; color: #374151;'
+            "
+            style="
+              padding: 0.5rem 1rem;
+              border: 1px solid #d1d5db;
+              border-radius: 0.375rem;
+              font-size: 0.875rem;
+              cursor: pointer;
+              transition: all 0.2s;
+              white-space: nowrap;
+            "
+          >
+            {{ part }}
+          </button>
+        </div>
+      </div>
+
       <PhotoTimeline
         :filtered-photos="filteredPhotos"
         @select-photo="onSelectPhoto"
@@ -108,6 +157,7 @@ const usersStore = useUsersStore()
 const authStore = useAuthStore()
 const selectedUserId = ref<string | null>(null)
 const selectedDate = ref<string>('')
+const selectedPart = ref<string>('')
 const selectedPhoto = ref<any>(null)
 
 onMounted(async () => {
@@ -179,6 +229,17 @@ const myFarms = computed(() => {
 // farm_id 목록
 const myFarmIds = computed(() => myFarms.value.map((farm) => farm.id))
 
+// 사용 가능한 부위 목록 (실제 데이터에서 추출)
+const availableParts = computed(() => {
+  const parts = new Set<string>()
+  filteredPhotos.value.forEach((photo) => {
+    if (photo.part) {
+      parts.add(photo.part)
+    }
+  })
+  return Array.from(parts).sort()
+})
+
 // 사진 필터링 (user_id 기반, mission 매핑 포함)
 const filteredPhotos = computed(() => {
   let filtered = photosStore.photos
@@ -207,9 +268,15 @@ const filteredPhotos = computed(() => {
     )
   }
 
+  // 부위별 필터링
+  if (selectedPart.value) {
+    filtered = filtered.filter((photo) => photo.part === selectedPart.value)
+  }
+
   console.log('Photos.vue: 필터링된 사진', {
     selectedUserId: selectedUserId.value,
     selectedDate: selectedDate.value,
+    selectedPart: selectedPart.value,
     totalPhotos: photosStore.photos.length,
     filteredPhotos: filtered.length,
   })
